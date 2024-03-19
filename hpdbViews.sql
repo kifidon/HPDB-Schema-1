@@ -134,11 +134,11 @@ CREATE VIEW AttendanceApproved AS
             Cast(en.start_time as date) as [Date] ,
             eu.name,
             eu.email,
-            SUM(en.duration) as [TotalHours]
+            ROUND(SUM(en.duration) * 4, 0) / 4 AS [TotalHours]
         From 
             [Entry] en
         inner join 
-            TimeSheet ts on ts.id = en.time_sheet_id
+            TimeSheet ts on ts.id = en.time_sheet_id and Cast(en.start_time as date) between ts.start_time and ts.end_time
         inner join 
             EmployeeUser eu on eu.id = ts.emp_id
         where ts.[status] = 'APPROVED' 
@@ -227,7 +227,6 @@ CREATE VIEW AttendanceApproved AS
         Calendar d on d.[date] IN (th.[Date], tr.date)
         
 go
-
 
 
 /*

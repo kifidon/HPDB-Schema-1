@@ -43,7 +43,7 @@ SELECT * FROM TimeSheet;
 SELECT * FROM Entry;
 SELECT * FROM Expense;
 SELECT * FROM Rates;
-SELECT * FROM TimeSheet ts 
+SELECT * FROM TimeSheet ts where ts.status = 'PENDING'
 inner join EmployeeUser eu on eu.id = ts.emp_id
 where name = 'Shawna Applejohn';
 
@@ -80,7 +80,7 @@ CREATE TABLE EmployeeUser (
 
 -- TimeSheet Table
 CREATE TABLE TimeSheet (
-    id VARCHAR(50) PRIMARY KEY,
+    id VARCHAR(50) Unique,
     emp_id VARCHAR(50) NOT NULL,
     start_time DATE,
     end_time DATE,
@@ -91,7 +91,8 @@ CREATE TABLE TimeSheet (
     expense_total DECIMAL(10, 2),
     workspace_id VARCHAR(50),
     [status] VARCHAR(50),
-    FOREIGN KEY (emp_id) REFERENCES EmployeeUser(id) ON DELETE CASCADE ,
+    PRIMARY KEY (id, start_time, end_time),
+    FOREIGN KEY (emp_id) REFERENCES EmployeeUser(id) ON DELETE CASCADE,
     FOREIGN KEY (workspace_id) REFERENCES Workspace(id)
     ON DELETE NO ACTION 
 );
@@ -127,7 +128,7 @@ CREATE TABLE Entry (
     start_time datetime,
     end_time DATETIME -- maybe change to datetime in the future 
     -- Add other entry-related columns as needed
-    PRIMARY KEY (id, time_sheet_id)
+    PRIMARY KEY (id,time_sheet_id)
     FOREIGN KEY (time_sheet_id) REFERENCES TimeSheet(id) ON UPDATE CASCADE ON DELETE CASCADE ,
     FOREIGN KEY (project_id) REFERENCES Project(id) ON DELETE CASCADE 
 );
@@ -221,6 +222,8 @@ CREATE TABLE TimeOffRequests(
         PRIMARY KEY (id, [date])
         FOREIGN KEY (id) REFERENCES EmployeeUser (id)
         ON DELETE CASCADE
+    
+    Select * FROM Project where id ='65e79fd044189d689d3eaeff'
     )
 */
 create table Calendar ( 
