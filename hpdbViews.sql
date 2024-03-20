@@ -1,10 +1,8 @@
 -- Time Sheety Qurary 
 /*
- DROP VIEW IF EXISTS MonthlyBillable;
- DROP VIEW IF EXISTS AttendanceApproved;
- DROP VIEW IF EXISTS TimeSheetOperations;
-
-
+    DROP VIEW IF EXISTS MonthlyBillable;
+    DROP VIEW IF EXISTS AttendanceApproved;
+    DROP VIEW IF EXISTS TimeSheetOperations;
 */ 
 
 CREATE VIEW TimeSheetOperations as (
@@ -96,38 +94,7 @@ CREATE VIEW MonthlyBillable as (
             )
 )
 
-/*
-    GO 
-                    DECLARE @ProjID VARCHAR(100)= '65c24acdedeea53ae19dbaec';
-                    SELECT 
-                        [Number],
-                        [Row],
-                        [Name],
-                        [Supplier],
-                        [QTY],
-                        [Unit],
-                        SUM([Unit Cost]) As [Unit Cost],
-                        Amount
-                    FROM MonthlyBillable mb
-                        WHERE mb.project_id = @ProjID
-                    GROUP BY 
-                        [Number],
-                        [Row],
-                        [Name],
-                        [Supplier],
-                        [QTY],
-                        [Unit],
-                        Amount 
-                    ORDER BY [Number] DESC;
-
-                    Select 
-                    DISTINCT en.project_id
-                    FROM TimeSheet TS
-                    INNER JOIN Entry en ON en.time_sheet_id = ts.id
-                    WHERE ts.start_time BETWEEN GETDATE() - 10 AND GETDATE()
-*/
 Go 
-
 CREATE VIEW AttendanceApproved AS
     with totalHrsPerDay as (
         select 
@@ -230,6 +197,35 @@ go
 
 
 /*
+    GO 
+                    DECLARE @ProjID VARCHAR(100)= '65c24acdedeea53ae19dbaec';
+                    SELECT 
+                        [Number],
+                        [Row],
+                        [Name],
+                        [Supplier],
+                        [QTY],
+                        [Unit],
+                        SUM([Unit Cost]) As [Unit Cost],
+                        Amount
+                    FROM MonthlyBillable mb
+                        WHERE mb.project_id = @ProjID
+                    GROUP BY 
+                        [Number],
+                        [Row],
+                        [Name],
+                        [Supplier],
+                        [QTY],
+                        [Unit],
+                        Amount 
+                    ORDER BY [Number] DESC;
+
+                    Select 
+                    DISTINCT en.project_id
+                    FROM TimeSheet TS
+                    INNER JOIN Entry en ON en.time_sheet_id = ts.id
+                    WHERE ts.start_time BETWEEN GETDATE() - 10 AND GETDATE()
+
     CREATE VIEW AttendanceReport AS (
         SELECT 
             eu.name,
@@ -278,4 +274,20 @@ go
         eu.name = 'Timmy Ifidon';
     delete from TimeOffRequests 
     where id = '65e7abe6e4c5116661054213'
+
+    select en.start_time, en.end_time, en.duration, p.[code], eu.name,  en.[description] From  Timesheet ts 
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    Inner join [Entry] en on en.time_sheet_id = ts.id
+    inner join Project p on p.id = en.project_id
+    where eu.name like 'Cody%' and ts.start_time = '2024-03-03' and ts.[status] = 'PENDING'
+
+    select ts.id, ts.start_time, ts.end_time, ts.[status] ,eu.name From  Timesheet ts 
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    where eu.name like 'Cody%' and ts.status = 'APPROVED'
+    order by ts.start_time, ts.[status]
+
+    Select name from EmployeeUser where id = '65e636b0ed9fe04df2770a90'
+    select id from EmployeeUser where name Like '%Cody%'
+    select * From Project
+
 */

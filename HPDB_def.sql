@@ -67,7 +67,6 @@ CREATE TABLE Client (
     -- Add other client-related columns as needed
 );
 
-
 -- User Table
 CREATE TABLE EmployeeUser (
     id VARCHAR(50) PRIMARY KEY,
