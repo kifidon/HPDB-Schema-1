@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS TimeOffAccrual
 DROP TABLE IF EXISTS Expense;
 DROP TABLE IF EXISTS ExpenseCategory;
 DROP TABLE IF EXISTS Rates;
+DROP TABLE IF EXISTS TagsFor;
 DROP TABLE IF EXISTS Entry;
 DROP TABLE IF EXISTS Task;
 DROP TABLE IF EXISTS Project;
@@ -19,9 +20,6 @@ DROP TABLE IF EXISTS EmployeeUser;
 DROP TABLE IF EXISTS Client;
 DROP TABLE IF EXISTS Workspace;
 
-DROP VIEW IF EXISTS AttendanceApproved;
-DROP VIEW IF EXISTS AttendanceReport;
-DROP VIEW IF EXISTS MonthlyBillable;
 
 SELECT * FROM Workspace;
 SELECT * FROM EmployeeUser where status != 'ACTIVE';
@@ -50,7 +48,7 @@ where name = 'Shawna Applejohn';
 select * from Entry en where en.time_sheet_id = '65e63cc1e09faa2cc3d11eec'
 
 
-*/
+*/ 
 
 -- Workspace Table
 CREATE TABLE Workspace (
@@ -60,10 +58,13 @@ CREATE TABLE Workspace (
 );
 -- Client Table
 CREATE TABLE Client (
-    id VARCHAR(50) PRIMARY KEY,
+    id VARCHAR(50),
     email VARCHAR(50),
     [address] VARCHAR(100),
-    [name] VARCHAR(255)
+    [name] VARCHAR(255),
+    workspace_id VARCHAR(50),
+    PRIMARY KEY (id, workspace_id),
+    FOREIGN KEY (workspace_id) REFERENCES Workspace(id) ON DELETE CASCADE 
     -- Add other client-related columns as needed
 );
 
@@ -79,7 +80,7 @@ CREATE TABLE EmployeeUser (
 
 -- TimeSheet Table
 CREATE TABLE TimeSheet (
-    id VARCHAR(50) Unique,
+    id VARCHAR(50) ,
     emp_id VARCHAR(50) NOT NULL,
     start_time DATE,
     end_time DATE,
@@ -90,21 +91,24 @@ CREATE TABLE TimeSheet (
     expense_total DECIMAL(10, 2),
     workspace_id VARCHAR(50),
     [status] VARCHAR(50),
-    PRIMARY KEY (id, start_time, end_time),
+    PRIMARY KEY (id, workspace_id),
     FOREIGN KEY (emp_id) REFERENCES EmployeeUser(id) ON DELETE CASCADE,
     FOREIGN KEY (workspace_id) REFERENCES Workspace(id)
-    ON DELETE NO ACTION 
+    ON DELETE CASCADE
 );
 
 -- Project Table
 CREATE TABLE Project (
-    id VARCHAR(50) PRIMARY KEY,
+    id VARCHAR(50),
     [name] NVARCHAR(MAX),
-    code VARCHAR(50) UNIQUE,
+    code VARCHAR(50) ,
     client_id VARCHAR(50) NOT NULL,
-    FOREIGN KEY (client_id) REFERENCES Client(id)
+    workspace_id varchar(50),
+    primary key (id, workspace_id),
+    FOREIGN KEY (client_id, workspace_id ) REFERENCES Client(id, workspace_id) 
+    ON DELETE NO ACTION, 
+    foreign key (workspace_id) REFERENCES Workspace(id) on delete cascade 
     -- include info a bout project Representative
-    ON DELETE NO ACTION 
 );
 /*
     Task Table
@@ -119,18 +123,33 @@ CREATE TABLE Entry (
     id VARCHAR(50),
     time_sheet_id VARCHAR(50) ,
     duration REAL,
-    [description] TEXT,
+    [description] NVARCHAR(MAX) COLLATE Latin1_General_CS_AS,
     billable BIT,
     project_id VARCHAR(50), -- used this as the WorkedOn relation 
     [type] VARCHAR(20),
     rate DECIMAL (10,2), -- rates for billing 
     start_time datetime,
-    end_time DATETIME -- maybe change to datetime in the future 
+    end_time DATETIME,
     -- Add other entry-related columns as needed
-    PRIMARY KEY (id,time_sheet_id)
-    FOREIGN KEY (time_sheet_id) REFERENCES TimeSheet(id) ON UPDATE CASCADE ON DELETE CASCADE ,
-    FOREIGN KEY (project_id) REFERENCES Project(id) ON DELETE CASCADE 
+    workspace_id varchar(50),
+    PRIMARY KEY (id, time_sheet_id), --maybe include workspace Id later 
+    FOREIGN KEY (time_sheet_id, workspace_id) REFERENCES TimeSheet(id, workspace_id)
+    On delete NO ACTION,
+    FOREIGN KEY (project_id, workspace_id) REFERENCES Project(id, workspace_id) ON DELETE CASCADE 
 );
+
+--Tags table 
+Create Table TagsFor(
+    id Varchar(50), 
+    [entryID] Varchar(50),
+    timeID varchar(50),
+    workspace_id varchar(50)
+    primary key (id, entryID, timeID, workspace_id),
+    [name] Varchar(50),
+    foreign key ([entryID], timeID) REFERENCES Entry(id, time_sheet_id)
+    on delete cascade,
+    foreign key (workspace_id) REFERENCES Workspace(id) on delete No action  
+)
 
 /*
     -- Rates for payroll 
@@ -185,20 +204,21 @@ CREATE TABLE Entry (
     )
 */
 CREATE TABLE TimeOffPolicies(
-    id VARCHAR(50) PRIMARY KEY, -- TIME OFF POLICY ID 
+    id VARCHAR(50) , -- TIME OFF POLICY ID 
     policy_name VARCHAR(50),
     accrual_amount REAL,
     accrual_period VARCHAR(15),
     time_unit VARCHAR(14),
     archived BIT,
     wID VARCHAR(50), 
+    primary key (id , wID),
     FOREIGN KEY (wID) REFERENCES Workspace(id)
     ON DELETE CASCADE 
 )
 
 CREATE TABLE TimeOffRequests(
     id VARCHAR(50) UNIQUE,
-    eID VARCHAR(50),
+    eID VARCHAR(50) Not Null,
     pID VARCHAR(50) NOT NULL, 
     startDate DATETIME,
     end_date DATETIME,
@@ -206,10 +226,12 @@ CREATE TABLE TimeOffRequests(
     paidTimeOff DECIMAL(10,2),
     balanceAfterRequest Decimal(10,2),
     [status] VARCHAR(50),
-    PRIMARY KEY (id, eID),
-    FOREIGN KEY (eID) REFERENCES EmployeeUser(id) ON DELETE CASCADE ,
-    FOREIGN KEY (pID) REFERENCES TimeOffPolicies(id)
-    ON DELETE CASCADE  
+    workspace_id varchar(50),
+    PRIMARY KEY (id, workspace_id),
+    foreign key (workspace_id) REFERENCES Workspace(id) on delete  No Action ,
+    FOREIGN KEY (eID) REFERENCES EmployeeUser(id) ON delete No action,
+    FOREIGN KEY (pID, workspace_id) REFERENCES TimeOffPolicies(id, wID)
+    ON delete Cascade 
 )
 /*
     CREATE TABLE Attendance(
@@ -236,7 +258,9 @@ create table Holidays(
     holidayID varchar(50),
     [date] DATE,
     [name] varchar(50),
-    primary key (holidayID),
+    workspace_id VARCHAR(50),
+    primary key (holidayID, workspace_id),
+    foreign key (workspace_id) REFERENCES Workspace(id) on delete cascade,
     foreign key ([date]) references Calendar([date])
 )
 
@@ -244,7 +268,8 @@ CREATE TABLE UserGroups(
     id varchar(50) ,
     [name] Varchar(50) Unique,
     workspace_id varchar(50),
-    Primary Key (id, workspace_id)
+    Primary Key (id, workspace_id),
+    foreign key (workspace_id) REFERENCES Workspace(id) on delete cascade 
 )
 
 CREATE TABLE GroupMembership(

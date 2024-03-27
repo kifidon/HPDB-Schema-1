@@ -3,8 +3,10 @@
     DROP VIEW IF EXISTS MonthlyBillable;
     DROP VIEW IF EXISTS AttendanceApproved;
     DROP VIEW IF EXISTS TimeSheetOperations;
+    DROP VIEW IF EXISTS BankedTimeOffPolicy;
+    DROP VIEW IF EXISTS BankedHRS;
 */ 
-
+-- only include oT if missing banked tag
 CREATE VIEW TimeSheetOperations as (
     SELECT 
         eu.name,
@@ -22,7 +24,7 @@ CREATE VIEW TimeSheetOperations as (
     INNER JOIN 
         EmployeeUser eu ON eu.id = ts.emp_id 
     INNER JOIN 
-        Project pj ON pj.id = en.project_id
+        Project pj ON pj.id = en.project_id and pj.workspace_id = en.workspace_id
     WHERE 
         ts.[status] = 'APPROVED'  and eu.[status] = 'ACTIVE'
 ) 
@@ -45,9 +47,9 @@ CREATE VIEW MonthlyBillable as (
     FROM TimeSheet ts 
         INNER JOIN EmployeeUser eu on eu.id = ts.emp_id 
         INNER JOIN [Entry] en ON en.time_sheet_id = ts.id 
-        INNER JOIN Project pj on pj.id = en.project_id
-        INNER JOIN Client cl on cl.id = pj.client_id
-        WHERE ts.[status] = 'APPROVED' and eu.[status] = 'ACTIVE'
+        INNER JOIN Project pj on pj.id = en.project_id and pj.workspace_id = en.workspace_id
+        INNER JOIN Client cl on cl.id = pj.client_id and pj.workspace_id = cl.workspace_id
+        WHERE ts.[status] = 'APPROVED'
         -- and en.start_time between '2024-02-01' and '2024-02-29' and eu.name like '%Rod%'
         GROUP BY
             pj.code, 
@@ -78,9 +80,9 @@ CREATE VIEW MonthlyBillable as (
     FROM TimeSheet ts 
         INNER JOIN EmployeeUser eu on eu.id = ts.emp_id 
         INNER JOIN [Entry] en ON en.time_sheet_id = ts.id 
-        INNER JOIN Project pj on pj.id = en.project_id
-        INNER JOIN Client cl on cl.id = pj.client_id
-        WHERE ts.[status] = 'APPROVED' and eu.[status] = 'ACTIVE'
+        INNER JOIN Project pj on pj.id = en.project_id and pj.workspace_id = en.workspace_id
+        INNER JOIN Client cl on cl.id = pj.client_id and pj.workspace_id = cl.workspace_id
+        WHERE ts.[status] = 'APPROVED' 
         GROUP BY 
             pj.code,
             pj.name, 
@@ -195,7 +197,74 @@ CREATE VIEW AttendanceApproved AS
         
 go
 
+Create VIEW BankedHRS as 
+    with BankedDays as ( -- all the days with an at least one entry that has a banked tag
+        select
+        distinct
+            eu.id as empID,
+            eu.name,
+            Cast(en.start_time as Date) as sDate
+        from EmployeeUser eu 
+        Inner join Timesheet ts on ts.emp_id = eu.id 
+        Inner join [Entry] en on en.time_sheet_id = ts.id and Cast(en.start_time As Date) between ts.start_time and ts.end_time
+        Inner join TagsFor tf on tf.entryID = en.id and tf.name = 'BANKED' and tf.workspace_id = en.workspace_id
+        where ts.status = 'APPROVED'
+    ),
+    TotalHrsOnBankedDay as ( -- total hours worked on a banked day 
+        select 
+            eu.id,
+            bd.sDate,
+            sum(en.duration) as total
+        from EmployeeUser eu 
+        Inner join Timesheet ts on ts.emp_id = eu.id 
+        Inner join [Entry] en on en.time_sheet_id = ts.id and Cast(en.start_time As Date) between ts.start_time and ts.end_time
+        Inner join BankedDays bd on bd.empID = eu.id and bd.sDate = Cast(en.start_time as Date)
+        where ts.status = 'APPROVED'
+        group by 
+            eu.id,
+            bd.sDate
+    )
+    select  -- historical log of all banked hours (used or unused )
+        tbd.id as empID,
+        bd.name as empName,
+        tbd.sDate as accuredOn,
+        tbd.total - 8 as BankedHours
+    from TotalHrsOnBankedDay tbd
+    Inner join BankedDays bd on tbd.sDate = bd.sDate
+    where tbd.total > 8
 
+GO
+
+CREATE VIEW BankedTimeOffPolicy AS 
+    with TimeOffBanked as ( -- historical log of all used banked hours 
+        select 
+            eu.id as empID,
+            tp.id as polID,
+            tr.paidTimeOff,
+            tr.end_date
+        from 
+            TimeOffPolicies tp 
+        Inner join 
+            TimeOffRequests tr on tp.id = tr.pID
+        Left join
+            EmployeeUser eu on eu.id = tr.eID 
+        where tp.policy_name = 'Banked Time Off'
+    )
+    select -- Stores for each person the number of banked hours they have accured and used, and the difference between them being the ballance 
+        eu.id as id,
+        coalesce(tb.polID, '65fc91ca17e548286f7bc026') as polID,
+        coalesce(SUM(bh.BankedHours), 0) as [All Time Banked Hours],
+        coalesce(SUM(tb.paidTimeOff), 0) as [All Time Used Banked Hours],
+        coalesce(sum(bh.BankedHours),0) - coalesce(sum(tb.paidTimeOff), 0 )as balance
+    from EmployeeUser eu
+    Full Outer Join BankedHRS bh on bh.empID = eu.id
+    Full OUTER join TimeOffBanked tb on bh.empID = tb.empID
+    group by
+        tb.empID,
+        tb.polID,
+        eu.id
+    
+go
 /*
     GO 
                     DECLARE @ProjID VARCHAR(100)= '65c24acdedeea53ae19dbaec';
@@ -290,4 +359,28 @@ go
     select id from EmployeeUser where name Like '%Cody%'
     select * From Project
 
+    select eu.id, eu.name from EmployeeUser eu
+    where eu.id not in (
+        select eu2.id from EmployeeUser eu2
+        inner join Timesheet ts on ts.emp_id = eu2.id 
+        where ts.start_time between '2024-02-23' and '2024-03-01' and ( ts.status != 'WITHDRAWN_APPROVAL' )
+    )
+    and eu.name NOT IN ( 'Keri Cardinal' ,'Eric Scroggins', 'Margaretta Potts Petawaysin', 'Hilary Meng', 'Melissa Bryant', 'Stephanie Alexis', 'Jeff McLeod');
+
+    select * from EmployeeUser eu
+    Inner join Timesheet ts on ts.emp_id = eu.id and eu.name Like 'Tony%'
+
+    select * from Entry where time_sheet_id = '6601c8de0d5045194a2cdc08'
+
+    select * from BankedTimeOffPolicy
+
+    select id from EmployeeUser where name Like 'Shiven%'
+
+    Select * FROm TimeOffRequests tr where tr.eID = '65dcdd57ea15ab53ab7b14df'
+
+    select eu.name, en.start_time, en.duration From TagsFor tg 
+    inner join Entry en on en.id = tg.entryID
+    inner join timesheet ts on ts.id = en.time_sheet_id
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    where ts.status = 'APPROVED'
 */
