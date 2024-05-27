@@ -294,7 +294,8 @@ create view TotalApprovedTimePerUser as (
     group by eu.name, eu.id)
 
 go 
-
+drop view ExpenseClaim
+go
 create view ExpenseClaim as 
     with cteExpenses as ( -- Expenses For which an altered Unit Cost on milage is to be applied 
         select 
@@ -393,9 +394,13 @@ Create View MalformedTimesheets as (
 )
 
 go
-
-
-
+delete TimeSheet 
+where id in (
+    select ts.id from TimeSheet ts 
+    inner join EmployeeUser eu on ts.emp_id = eu.id 
+    where eu.name like 'Steve Sha%' and ts.start_time = '2024-05-19'
+)
+go 
 /*
     with cte_totalHrs as ( -- total number of hours per salary or hourly employee
         select eu.id, Sum(en.duration) as [hours], ug.name as [uGroup] From EmployeeUser eu 
