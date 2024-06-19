@@ -1,13 +1,13 @@
 -- Time Sheety Qurary 
 /*
-    DROP VIEW IF EXISTS MonthlyBillable;
-    DROP VIEW IF EXISTS AttendanceApproved;
-    DROP VIEW IF EXISTS TimeSheetOperations;
-    DROP VIEW IF EXISTS BankedTimeOffPolicy;
-    DROP VIEW IF EXISTS BankedHRS;
+    drop view if exists IF EXISTS MonthlyBillable;
+    drop view if exists IF EXISTS AttendanceApproved;
+    drop view if exists IF EXISTS TimeSheetOperations;
+    drop view if exists IF EXISTS BankedTimeOffPolicy;
+    drop view if exists IF EXISTS BankedHRS;
 */ 
 -- only include oT if missing banked tag
-drop view TimeSheetOperations
+drop view if exists TimeSheetOperations
 go
 CREATE VIEW TimeSheetOperations as (
     SELECT 
@@ -32,7 +32,7 @@ CREATE VIEW TimeSheetOperations as (
 ) 
 
 go
-drop view MonthlyBillable
+drop view if exists MonthlyBillable
 go
 CREATE VIEW MonthlyBillable as (
 
@@ -53,7 +53,7 @@ CREATE VIEW MonthlyBillable as (
         INNER JOIN [Entry] en ON en.time_sheet_id = ts.id 
         INNER JOIN Project pj on pj.id = en.project_id and pj.workspace_id = en.workspace_id
         INNER JOIN Client cl on cl.id = pj.client_id and pj.workspace_id = cl.workspace_id
-        WHERE ts.[status] = 'APPROVED'
+        WHERE ts.[status] = 'APPROVED' and en.billable = 1
         -- and en.start_time between '2024-02-01' and '2024-02-29' and eu.name like '%Rod%'
         GROUP BY
             pj.code, 
@@ -86,7 +86,7 @@ CREATE VIEW MonthlyBillable as (
         INNER JOIN [Entry] en ON en.time_sheet_id = ts.id 
         INNER JOIN Project pj on pj.id = en.project_id and pj.workspace_id = en.workspace_id
         INNER JOIN Client cl on cl.id = pj.client_id and pj.workspace_id = cl.workspace_id
-        WHERE ts.[status] = 'APPROVED' 
+        WHERE ts.[status] = 'APPROVED' and en.billable = 1
         GROUP BY 
             pj.code,
             pj.title, 
@@ -99,9 +99,87 @@ CREATE VIEW MonthlyBillable as (
                 '-25'
             )
 )
-Go 
-drop view AttendanceApproved
+
+
 go
+drop view if exists MonthlyBillableEqp
+go
+CREATE VIEW MonthlyBillableEqp as (
+
+    SELECT  
+        Null as [Number],
+        eu.name as [Name], 
+        NULL AS [Supplier],
+        CAST(SUM(en.duration) AS DECIMAL(10, 2)) AS QTY,
+        'hr' AS Unit,
+        118.75 AS [Unit Cost],
+        CAST(
+             SUM(en.duration) * 118.75 AS DECIMAL(10, 2)  -- * truck rate
+        )AS Amount,
+        en.start_time,
+        en.project_id
+    FROM TimeSheet ts 
+        INNER JOIN EmployeeUser eu on eu.id = ts.emp_id 
+        INNER JOIN [Entry] en ON en.time_sheet_id = ts.id 
+        INNER JOIN Project pj on pj.id = en.project_id and pj.workspace_id = en.workspace_id
+        INNER JOIN Client cl on cl.id = pj.client_id and pj.workspace_id = cl.workspace_id
+        WHERE ts.[status] = 'APPROVED' and en.billable = 1 and eu.hasTruck = 1
+        -- and en.start_time between '2024-02-01' and '2024-02-29' and eu.name like '%Rod%'
+        GROUP BY
+            pj.code, 
+            en.rate,
+            en.start_time,
+            en.project_id,
+            eu.name
+
+    UNION ALL
+
+    SELECT 
+        pj.code as [Number],
+        pj.title AS [Name],
+        cl.name AS [Supplier],
+        1 AS QTY,
+        'ls' AS Unit,
+        CAST(
+            SUM(en.duration * 118.75) AS DECIMAL(10, 2) -- * en.rate)
+        ) AS UnitCost,
+        NULL AS Amount,
+        CONCAT(
+            DATEPART(YEAR, DATEADD(DAY, -24, en.start_time)),
+            '-',
+            DATEPART(MONTH, DATEADD(DAY, -24, en.start_time)),
+            '-25'
+        ) AS start_time,
+        en.project_id     
+    FROM TimeSheet ts 
+        INNER JOIN EmployeeUser eu on eu.id = ts.emp_id 
+        INNER JOIN [Entry] en ON en.time_sheet_id = ts.id 
+        INNER JOIN Project pj on pj.id = en.project_id and pj.workspace_id = en.workspace_id
+        INNER JOIN Client cl on cl.id = pj.client_id and pj.workspace_id = cl.workspace_id
+        WHERE ts.[status] = 'APPROVED' and en.billable = 1 and eu.hasTruck = 1
+        GROUP BY 
+            pj.code,
+            pj.title, 
+            cl.name,
+            en.project_id,
+            CONCAT(
+                DATEPART(YEAR, DATEADD(DAY, -24, en.start_time)),
+                '-',
+                DATEPART(MONTH, DATEADD(DAY, -24, en.start_time)),
+                '-25'
+            )
+
+)
+
+go 
+select en.start_time from Timesheet ts 
+inner join EmployeeUser eu on eu.id = ts.emp_id
+inner join Entry en on en.time_sheet_id = ts.id
+where en.start_time > '2024-05-25' and eu.name like 'Jeff'
+
+Go 
+drop view if exists AttendanceApproved 
+go 
 CREATE VIEW AttendanceApproved AS
     with totalHrsPerDay as (
         select 
@@ -124,8 +202,7 @@ CREATE VIEW AttendanceApproved AS
             eu.id    
     ),
     TimeOffReasons as (
-        select 
-            
+        select  
             d.date,
             eu.name,
             eu.email,
@@ -150,7 +227,7 @@ CREATE VIEW AttendanceApproved AS
         left join 
             Holidays h on h.[date] = d.[date]
         where 
-           d.dayOfWeek not in (1,7) 
+           d.dayOfWeek not in (1,7) and tr.status = 'APPROVED' 
     )
     SELECT 
         
@@ -189,21 +266,22 @@ CREATE VIEW AttendanceApproved AS
         case 
             when tr.Holiday is Null then 'N/A' 
             else tr.Holiday
-        end as Holiday 
+        end as Holiday
     FROM
         totalHrsPerDay th
     FULL OUTER JOIN 
-        TimeOffReasons tr ON th.name = tr.name 
-                        AND th.email = tr.email 
-                        AND th.[Date] = tr.[Date]
-    inner join 
+        TimeOffReasons tr ON th.id = tr.id 
+            AND th.[Date] = tr.[Date]
+    left join 
         Calendar d on d.[date] IN (th.[Date], tr.date)
-    inner join GroupMembership gm on gm.user_id = th.id
+    inner join GroupMembership gm on gm.user_id  = Coalesce(th.id, tr.id )
     inner join UserGroups ug on ug.id = gm.group_id
     where ug.id = '662692095d98964711869706'
         
+
+
 go
-drop view BankedHRS
+drop view if exists BankedHRS
 go
 Create VIEW BankedHRS as 
     with BankedDays as ( -- all the days with an at least one entry that has a banked tag
@@ -248,7 +326,7 @@ Create VIEW BankedHRS as
     where tbd.total > 8 or DATEPART( dw, tbd.sDate) IN (1,7)
 
 GO
-drop view BankedTimeOffPolicy
+drop view if exists BankedTimeOffPolicy
 go
 CREATE VIEW BankedTimeOffPolicy AS 
     with TimeOffBanked as ( -- historical log of all used banked hours 
@@ -284,17 +362,18 @@ CREATE VIEW BankedTimeOffPolicy AS
         tb.paidTimeOff
     
 go
-drop view TotalApprovedTimePerUser
+drop view if exists TotalApprovedTimePerUser
 go 
 create view TotalApprovedTimePerUser as (
     select  eu.name , Sum(en.duration) as ApprovedTime, eu.id from Entry en
     inner join TimeSheet ts on ts.id = en.time_sheet_id
     inner join EmployeeUser eu on eu.id = ts.emp_id
-    where ts.status = 'APPROVED' and eu.status = 'ACTIVE'
+    where ts.status = 'APPROVED' 
     group by eu.name, eu.id)
 
 go 
-
+drop view if exists ExpenseClaim
+go
 create view ExpenseClaim as 
     with cteExpenses as ( -- Expenses For which an altered Unit Cost on milage is to be applied 
         select 
@@ -307,17 +386,18 @@ create view ExpenseClaim as
         inner join 
             ExpenseCategory ec on ec.id = ex.categoryId
         where 
-            ec.name like 'Kilometers' and
+            ec.name like 'Mileage' and
             EXISTS (
                 select 1 from Expense exI
                 where 
                     exI.userId = ex.userId 
                     and exI.date between DateFromParts(Year(ex.date),1,1) and ex.[date]
-                    AND exI.id != ex.id 
-                group by 
+                    and ex.[status] = 'APPROVED' and exI.[status] = 'APPROVED'
+                    -- AND exI.id != ex.id 
+                group by  
                     exI.userId 
                 having 
-                    SUM(exI.quantity) > 5000
+                    SUM(exI.quantity) >= 5000
             )
     )
     select
@@ -326,16 +406,20 @@ create view ExpenseClaim as
         eu.name as [Name],
         ec.name as [Expense Type],
         ex.notes as [Description],
+        ex.status,
         case 
             when ec.hasUnitPrice = 1 then ex.quantity else 1
             end as [Quantity],
         case 
-            when ec.hasUnitPrice = 1 then Cast(Round(COALESCE(cex.UnitCost, ec.priceInCents)/100, 2) as Decimal(10,2)) else 0
+            when ec.hasUnitPrice = 1 then Cast(Round(COALESCE(cex.UnitCost, ec.priceInCents), 2) as Decimal(10,2)) else 0
             end as [Unit Price],
         p.name as [Project],
-        CAST(Round( cast(ex.total as real)/(105) ,5) as Decimal(10,2)) as [Sub-Total],
-        Cast(round((cast(ex.total as real)/(105) )* 0.05, 5) as Decimal(10,2)) as [GST],
-        Cast(ROUND( cast(ex.total as real)/(100) ,3) as Decimal(10,2)) as [Total]
+        Case when ec.hasUnitPrice = 1 then 0 else CAST(ex.subTotal as Decimal(10,2)) end as [Sub-Total],
+        case when ec.hasUnitPrice = 1 then 0 else Cast(ex.taxes as Decimal(10,2)) end as [Tax],
+        Case 
+            when ec.hasUnitPrice = 1 then Cast(round(Coalesce(cex.UnitCost, ec.priceInCents)* ex.quantity, 2) as decimal(10,2)) 
+            else Cast((ex.subTotal + ex.taxes ) as Decimal(10,2))
+        end As[Total]
     From
         Expense ex
     left Join cteExpenses cex on cex.id = ex.id
@@ -344,7 +428,7 @@ create view ExpenseClaim as
     inner join ExpenseCategory ec on ec.id = ex.categoryId
 
 go
-drop VIEW PendingTimesheets
+drop view if exists PendingTimesheets
 go
 CREATE view PendingTimesheets as 
     select eu.name, ts.start_time, ts.id from TimeSheet ts 
@@ -352,7 +436,7 @@ CREATE view PendingTimesheets as
     where ts.[status] = 'PENDING'
 
 go 
-DROP view MissingTimesheets 
+drop view if exists MissingTimesheets 
 go
 CREATE View MissingTimesheets as 
     select eu.name, d.date as WeekStart from EmployeeUser eu
@@ -364,7 +448,7 @@ CREATE View MissingTimesheets as
                 dateadd(day, 1-DATEPART(weekday, ts1.start_time), ts1.start_time) -- ensures Sunday
                 and dateadd(day, 7 - DATEPART(WEEKDAY, ts1.end_time), ts1.end_time) -- ensures saturday
             ) -- may cause a logical error if entry is on a sunday, mapped to a timesheet that has start-end (Monday-Sunday)
-        ) 
+        ) and eu.name like 'Jonathan%'
         -- filters date after the sunday that employee started 
         and DATEADD(day, 1 - DATEPART(weekday,eu.start_date) , eu.start_date )<= d.[date] and 
         -- Filters between current date and clockify records start date (2023-12-31),
@@ -376,19 +460,17 @@ CREATE View MissingTimesheets as
     EXCEPT -- doesn't include users who have no timesheet but had booked time off during this week
     
     select Distinct ap.name, dateadd( day, 1- datepart(weekday,ap.date),ap.date) from AttendanceApproved ap 
-    where ap.policy_name != 'N/A'
+    where ap.policy_name != 'N/A' and ap.name like 'Jonathan%'
 
 go 
-drop view MalformedTimesheets
+drop view if exists MalformedTimesheets
 go 
 Create View MalformedTimesheets as (
     select eu.name, ts.start_time, ts.[status], ts.id From TimeSheet ts
     Inner join EmployeeUser eu on eu.id = ts.emp_id
     where not exists (
         select 1 from Entry en where en.time_sheet_id = ts.id
-    ) and not exists(
-        Select 1 From Expense ex where ex.timesheetId = ts.id
-    )
+    ) 
     and ts.status = 'APPROVED'
 )
 
@@ -467,8 +549,8 @@ CREATE OR ALTER TRIGGER SetNullValuesToNegative1
         INNER JOIN
             inserted ON Timesheet.id = inserted.id;
     END;
-    Go
 
+go
 CREATE OR ALTER TRIGGER RoundDurationToNearest15Min
     ON Entry
     AFTER INSERT, UPDATE
@@ -481,7 +563,39 @@ CREATE OR ALTER TRIGGER RoundDurationToNearest15Min
 
     END;
     go
+
+Go 
+Create Or Alter Trigger CreateFileOnExpense 
+    On Expense 
+    After Insert 
+    as 
+    Begin 
+        Insert FilesForExpense( expenseId, workspaceId)
+        Select id, workspaceId 
+        From inserted
+    end; 
+
+go 
+Create or alter TRIGGER  trg_insert_BackGroundTaskDjango
+    ON BackGroundTaskDjango
+    AFTER INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+
+        UPDATE BackGroundTaskDjango
+        SET message = 'No Information'
+        FROM BackGroundTaskDjango AS b
+        JOIN inserted AS i ON b.[time] = b.[time]
+        WHERE i.message IS NULL;
+    END;
+
+update BackgroundTaskDjango 
+set message = 'No Message Provided' where [message] is NULL
 ----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 /*
     select * from EmployeeUser where name like 'Molar %'
 
@@ -588,7 +702,7 @@ CREATE OR ALTER TRIGGER RoundDurationToNearest15Min
                 WHERE ts.start_time BETWEEN '2024-03-25' AND '2024-04-24'
                     AND ts.[status] = 'APPROVED'
 
-    DROP view if exists LemEqpTable;
+    drop view if exists if exists LemEqpTable;
     DROP TABLE if exists LemEqpTable;
     DROP TABLE if exists clockify_workspace;
     DROP TABLE if exists clockify_groupmembership;
@@ -742,3 +856,42 @@ CREATE OR ALTER TRIGGER RoundDurationToNearest15Min
     UPDATE EmployeeUser SET start_date = '2024-05-21' WHERE name = 'Maynard Basilides';
 
 */
+
+SELECT att.name, att.Date, att.RegularHrs, att.Overtime, att.TotalHours , att.TimeOff, att.policy_name, att.Holiday  FROM AttendanceApproved att
+WHERE att.Date BETWEEN '2024-06-01' AND '2024-06-15'
+
+Union ALL
+
+Select tt.name,Null, Sum(tt.RegularHrs), Sum(tt.Overtime), Sum(tt.TotalHours), Sum(tt.TimeOff), 'Policy_name', 'Holiday' From AttendanceApproved tt
+WHERE [Date] BETWEEN '2024-06-01' AND '2024-06-15'
+Group By tt.name
+
+ORDER BY [name], Date DESC
+
+
+
+
+
+
+select * From Project where id ='65c25dc8edeea53ae1a18ff0'
+
+Select * From ExpenseClaim where status = 'PENDING'
+SELECT * FROM ExpenseClaim
+
+ROLLBACK
+
+select * from Client 
+
+select * from EmployeeUser
+
+
+select ts.start_time, SUM(en.duration) from EmployeeUser eu 
+Inner Join TimeSheet ts on ts.emp_id = eu.id
+Inner join Entry en on en.time_sheet_id = ts.id
+where eu.name like 'Rodney%' and ts.status = 'APPROVED'
+group by ts.start_time
+
+
+Select * from ExpenseClaim Order by [Date]
+
+Delete  from Expense

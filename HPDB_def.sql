@@ -9,6 +9,8 @@ CREATE TABLE Workspace (
     -- Add other workspace-related columns as needed
 );
 
+
+select * from Client
 -- Client Table
 drop table Client
 GO
@@ -22,6 +24,8 @@ create TABLE Client (
     FOREIGN KEY (workspace_id) REFERENCES Workspace(id) ON DELETE CASCADE 
     -- Add other client-related columns as needed
 );
+ALTER TABLE Client
+ADD longName VARCHAR(255); 
 
 -- User Table
 drop table EmployeeUser
@@ -40,6 +44,9 @@ alter TABLE EmployeeUser
 drop column baseRate
 Alter Table EmployeeUser 
 add [role] VARCHAR(50)
+Alter Table EmployeeUser
+add [hasTruck] Bit Default 0
+
 
 -- TimeSheet Table
 drop table TimeSheet 
@@ -215,6 +222,10 @@ CREATE TABLE UserGroups(
     foreign key (workspace_id) REFERENCES Workspace(id) on delete cascade 
 )
 
+Alter Table UserGroups 
+    Alter Column name Varchar(250)
+
+
 drop table GroupMembership
 go
 CREATE TABLE GroupMembership(
@@ -242,37 +253,84 @@ CREATE TABLE ExpenseCategory (
     ON DELETE CASCADE 
     -- Add other category-related columns as needed
 );
-
+select * from ExpenseCategory
 
 --Expense Table
 drop table Expense
 CREATE TABLE Expense (
-    id VARCHAR(50),
+    id VARCHAR(64),
+    status Varchar(50) default 'PENDING',
     workspaceId VARCHAR(50) Not null,
     userId VARCHAR(50) Not null,
     [date] DATE,
     projectId VARCHAR(50) Not null,
     categoryId VARCHAR(50) Not null,
     notes VARCHAR(MAX),
-    quantity REAL,
-    billable BIT,
-    fileId VARCHAR(50),
-    total Int,
-
-    timesheetId Varchar(50),
+    quantity REAL default -1,
+    subTotal REAL default -1,
+    taxes REAL default -1,
     primary key (id, workspaceId),
     FOREIGN key (workspaceId) references Workspace(id),
     FOREIGN KEY (projectId, workspaceId) REFERENCES Project(id, workspace_id) On Delete No ACTION,
     FOREIGN key (categoryId, workspaceId) REFERENCES ExpenseCategory(id, workspaceId) on delete CASCADE,
 );
+
+Go 
+Drop Table If Exists  FilesForExpense
+go 
+Create TABLE FilesForExpense(
+    expenseId Varchar(64) Primary Key ,
+    binaryData Text,
+    workspaceId VARCHAR(50),
+    FOREIGN key (expenseId, workspaceId) REFERENCES Expense (id,workspaceId) On DELETE CASCADE 
+)
+Select * From FilesForExpense
+
+go
 drop table BackGroundTaskDjango
 create table BackGroundTaskDjango(
     status_code int,
-    message VARCHAR(250),
+    message NVARCHAR(MAX),
     data Text,
     [time] DATETIME,
     caller Varchar(50)
 )
 
 
+Select * from Entry Order by start_time
 
+select * from EmployeeUser where name like 'Jeff%'
+
+Update EmployeeUser set role  = 'No Role Specified' where role is NULL
+
+
+            Select 
+                p.id, p.code
+            from Project p
+            where exists (
+                select 1 From Entry en 
+                inner join TimeSheet ts on ts.id = en.time_sheet_id
+                Inner join EmployeeUser eu on eu.id = ts.emp_id 
+                where ts.status = 'APPROVED' and en.start_time between '2024-05-25' and '2024-06-25'
+                and eu.hasTruck = 1
+            )
+
+            select * from EmployeeUser where hasTruck = 1
+
+            select Distinct p.code  from Project p 
+            inner join Entry en on en.project_id = p.id
+            inner join TimeSheet ts on ts.id = en.time_sheet_id
+            where ts.status = 'APPROVED' 
+            and en.start_time between '2024-05-25' and '2024-06-25'
+
+
+select * from BankedTimeOffPolicy b
+inner join EmployeeUser eu on eu.id = b.id
+where eu.name like '%Belle%'
+
+select * from EmployeeUser where hasTruck = 1
+
+select * from BackGroundTaskDjango order by time
+
+
+delete  BackGroundTaskDjango where message like 'null'
