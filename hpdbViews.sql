@@ -112,7 +112,7 @@ CREATE VIEW MonthlyBillableEqp as (
         NULL AS [Supplier],
         CAST(SUM(en.duration) AS DECIMAL(10, 2)) AS QTY,
         'hr' AS Unit,
-        118.75 AS [Unit Cost],
+        18.75 AS [Unit Cost],
         CAST(
              SUM(en.duration) * 118.75 AS DECIMAL(10, 2)  -- * truck rate
         )AS Amount,
@@ -141,7 +141,7 @@ CREATE VIEW MonthlyBillableEqp as (
         1 AS QTY,
         'ls' AS Unit,
         CAST(
-            SUM(en.duration * 118.75) AS DECIMAL(10, 2) -- * en.rate)
+            SUM(en.duration * 18.75) AS DECIMAL(10, 2) -- * en.rate)
         ) AS UnitCost,
         NULL AS Amount,
         CONCAT(
@@ -171,11 +171,6 @@ CREATE VIEW MonthlyBillableEqp as (
 
 )
 
-go 
-select en.start_time from Timesheet ts 
-inner join EmployeeUser eu on eu.id = ts.emp_id
-inner join Entry en on en.time_sheet_id = ts.id
-where en.start_time > '2024-05-25' and eu.name like 'Jeff'
 
 Go 
 drop view if exists AttendanceApproved 
@@ -365,10 +360,10 @@ go
 drop view if exists TotalApprovedTimePerUser
 go 
 create view TotalApprovedTimePerUser as (
-    select  eu.name , Sum(en.duration) as ApprovedTime, eu.id from Entry en
+    select  eu.name , Sum(en.duration) as [Approved Time], SUM(en.duration * en.rate/100) as [Billable Amount] ,eu.id from Entry en
     inner join TimeSheet ts on ts.id = en.time_sheet_id
     inner join EmployeeUser eu on eu.id = ts.emp_id
-    where ts.status = 'APPROVED' 
+    where ts.status = 'APPROVED' and DATEPART(year, Cast(en.start_time as Date )) = DatePart(YEAR, GETDATE())
     group by eu.name, eu.id)
 
 go 
@@ -380,7 +375,7 @@ create view ExpenseClaim as
             ex.id,
             ex.userId,
             ex.quantity,
-            62 as UnitCost
+            0.62 as UnitCost
         from 
             Expense ex
         inner join 
@@ -392,7 +387,7 @@ create view ExpenseClaim as
                 where 
                     exI.userId = ex.userId 
                     and exI.date between DateFromParts(Year(ex.date),1,1) and ex.[date]
-                    and ex.[status] = 'APPROVED' and exI.[status] = 'APPROVED'
+                    and ex.[status] IN ('APPROVED', 'PENDING') and exI.[status] IN ('APPROVED', 'PENDING')
                     -- AND exI.id != ex.id 
                 group by  
                     exI.userId 
@@ -448,7 +443,7 @@ CREATE View MissingTimesheets as
                 dateadd(day, 1-DATEPART(weekday, ts1.start_time), ts1.start_time) -- ensures Sunday
                 and dateadd(day, 7 - DATEPART(WEEKDAY, ts1.end_time), ts1.end_time) -- ensures saturday
             ) -- may cause a logical error if entry is on a sunday, mapped to a timesheet that has start-end (Monday-Sunday)
-        ) and eu.name like 'Jonathan%'
+        ) 
         -- filters date after the sunday that employee started 
         and DATEADD(day, 1 - DATEPART(weekday,eu.start_date) , eu.start_date )<= d.[date] and 
         -- Filters between current date and clockify records start date (2023-12-31),
@@ -460,7 +455,7 @@ CREATE View MissingTimesheets as
     EXCEPT -- doesn't include users who have no timesheet but had booked time off during this week
     
     select Distinct ap.name, dateadd( day, 1- datepart(weekday,ap.date),ap.date) from AttendanceApproved ap 
-    where ap.policy_name != 'N/A' and ap.name like 'Jonathan%'
+    where ap.policy_name != 'N/A' 
 
 go 
 drop view if exists MalformedTimesheets
@@ -860,42 +855,3 @@ set message = 'No Message Provided' where [message] is NULL
     UPDATE EmployeeUser SET start_date = '2024-05-21' WHERE name = 'Maynard Basilides';
 
 */
-
-SELECT att.name, att.Date, att.RegularHrs, att.Overtime, att.TotalHours , att.TimeOff, att.policy_name, att.Holiday  FROM AttendanceApproved att
-WHERE att.Date BETWEEN '2024-06-01' AND '2024-06-15'
-
-Union ALL
-
-Select tt.name,Null, Sum(tt.RegularHrs), Sum(tt.Overtime), Sum(tt.TotalHours), Sum(tt.TimeOff), 'Policy_name', 'Holiday' From AttendanceApproved tt
-WHERE [Date] BETWEEN '2024-06-01' AND '2024-06-15'
-Group By tt.name
-
-ORDER BY [name], Date DESC
-
-
-
-
-
-
-select * From Project where id ='65c25dc8edeea53ae1a18ff0'
-
-Select * From ExpenseClaim where status = 'PENDING'
-SELECT * FROM ExpenseClaim
-
-ROLLBACK
-
-select * from Client 
-
-select * from EmployeeUser
-
-
-select ts.start_time, SUM(en.duration) from EmployeeUser eu 
-Inner Join TimeSheet ts on ts.emp_id = eu.id
-Inner join Entry en on en.time_sheet_id = ts.id
-where eu.name like 'Rodney%' and ts.status = 'APPROVED'
-group by ts.start_time
-
-
-Select * from ExpenseClaim Order by [Date]
-
-Delete  from Expense
