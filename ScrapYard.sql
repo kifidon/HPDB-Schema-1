@@ -1,5 +1,5 @@
 -- For Testing, debugging, and Misc. Sql Operations
-
+-- Coments
 
 
 select * from AttendanceApproved att where att.name like 'Adrienne Belle Alexis' and att.[date] = '2024-06-19'
