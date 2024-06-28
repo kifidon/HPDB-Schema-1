@@ -1,4 +1,4 @@
-
+-- 
 Drop Table If Exists Role
 CREATE TABLE Role(
     id VARCHAR(50) Primary KEY, 
@@ -53,10 +53,10 @@ create TABLE LemWorker (
 -- Equipment Table
 Drop Table If Exists Equipment
 CREATE TABLE Equipment(
-    id VARCHAR(50),
+    equipId VARCHAR(50),
     [name] VARCHAR(50),
     workspaceId Varchar(50),
-    PRIMARY KEY (id, workspaceId),
+    PRIMARY KEY (equipId, workspaceId),
     FOREIGN Key (workspaceId) REFERENCES Workspace(id)
 );
 
@@ -118,3 +118,7 @@ CREATE TABLE EqpRateSheet(
     FOREIGN Key (equipId, workspaceId) References Equipment(id, workspaceId) ,
     FOREIGN Key (clientId, workspaceId) References Client(id, workspace_id) On Delete Cascade 
 );
+
+Select * from Role
+
+insert into Role(id, name) Values ('21232', 'Trucke')
