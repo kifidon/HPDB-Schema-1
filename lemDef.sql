@@ -26,6 +26,7 @@ CREATE TABLE LemSheet(
     workspaceId Varchar(50),
     PRIMARY KEY (id, workspaceId),
     lem_sheet_date DATE,
+    lemNumber Varchar(10),
     discripation VARCHAR(50),
     notes NVARCHAR(250),
     projectId VARCHAR(50),
@@ -64,10 +65,10 @@ CREATE TABLE Equipment(
 -- EquipEntry Table
 Drop Table If Exists EquipEntry
 CREATE TABLE EquipEntry (
-    id VARCHAR(50),
+    -- id VARCHAR(50),
     lemId VARCHAR(50),
     workspaceId Varchar(50),
-    PRIMARY KEY (id, lemId, workspaceId),
+    PRIMARY KEY  (lemId, workspaceId),
     equipId VARCHAR (50),
     isUnitRate BIT default 0,
     qty DECIMAL (10, 2) Default 0.00,
