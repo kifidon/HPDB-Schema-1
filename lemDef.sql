@@ -72,7 +72,7 @@ CREATE TABLE EquipEntry (
     isUnitRate BIT default 0,
     qty DECIMAL (10, 2) Default 0.00,
     FOREIGN KEY (workspaceId) REFERENCES Workspace(id) , 
-    FOREIGN KEY (lemId, workspaceId) REFERENCES LemSheet(id, workspaceId) On Delete CASCADE,
+    FOREIGN KEY (lemId, workspaceId) REFERENCES LemSheet(Lid, workspaceId) On Delete CASCADE,
     FOREIGN KEY (equipId, workspaceId) REFERENCES Equipment(id, workspaceId) ,
 );
 
@@ -88,7 +88,7 @@ create TABLE LemEntry (
     Meals DECIMAL(10,2) Default 0.00,
     Hotel DECIMAL(10,2) Default 0.00,
     FOREIGN KEY (workspaceId) REFERENCES Workspace(id) ,
-    FOREIGN KEY (lemId, workspaceId) REFERENCES LemSheet(id, workspaceId) ON DELETE CASCADE ,
+    FOREIGN KEY (lemId, workspaceId) REFERENCES LemSheet(Lid, workspaceId) ON DELETE CASCADE ,
     FOREIGN KEY (workerId, workspaceId) REFERENCES LemWorker(empId, workspaceId) ,
     -- Add other LemEntry columns as needed
 );
