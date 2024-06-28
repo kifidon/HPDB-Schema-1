@@ -1,5 +1,5 @@
 -- For Testing, debugging, and Misc. Sql Operations
-
+-- Coments
 
 
 select * from AttendanceApproved att where att.name like 'Adrienne Belle Alexis' and att.[date] = '2024-06-19'
@@ -23,3 +23,24 @@ FROM information_schema.tables
 
 
 Select * from LemSheet
+
+--Test changes 
+--- test data
+INSERT INTO Role(id, [name] )
+VALUES
+    ('id', 1099),
+    ('Name', Dixon);
+
+--- test data
+INSERT INTO Equipment (id, [name])
+VALUES
+    ('id', 1099),
+    ('Name', Dixon);
+
+--- test data
+INSERT INTO EqpRateSheet (equipId, clientId,unitRate,dayRate)
+VALUES
+    ('iequipEd', 1099),
+    ('clientId', Dixon),
+    ('unitRate', 34.5),
+    ('dayRate', 21);
