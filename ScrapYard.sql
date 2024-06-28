@@ -20,3 +20,24 @@ SELECT att.name, att.Date, att.RegularHrs, att.Overtime, att.TotalHours , att.Ti
 
 SELECT table_name
 FROM information_schema.tables
+
+--- test data
+INSERT INTO Role(id, [name] )
+VALUES
+    ('id', 1099),
+    ('Name', Dixon);
+
+--- test data
+INSERT INTO Equipment (id, [name])
+VALUES
+    ('id', 1099),
+    ('Name', Dixon);
+
+--- test data
+INSERT INTO EqpRateSheet (equipId, clientId,unitRate,dayRate)
+VALUES
+    ('iequipEd', 1099),
+    ('clientId', Dixon),
+    ('unitRate', 34.5),
+    ('dayRate', 21);
+
