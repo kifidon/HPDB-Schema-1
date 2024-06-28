@@ -73,7 +73,7 @@ CREATE TABLE EquipEntry (
     qty DECIMAL (10, 2) Default 0.00,
     FOREIGN KEY (workspaceId) REFERENCES Workspace(id) , 
     FOREIGN KEY (lemId, workspaceId) REFERENCES LemSheet(Lid, workspaceId) On Delete CASCADE,
-    FOREIGN KEY (equipId, workspaceId) REFERENCES Equipment(id, workspaceId) ,
+    FOREIGN KEY (equipId, workspaceId) REFERENCES Equipment(equipId, workspaceId) ,
 );
 
 Drop Table If Exists LemEntry
@@ -115,7 +115,7 @@ CREATE TABLE EqpRateSheet(
     PRIMARY KEY (equipid, clientId, workspaceId),
     unitRate DECIMAL(10,2) Default 0.00,
     dayRate DECIMAL(10,2) Default 0.00,
-    FOREIGN Key (equipId, workspaceId) References Equipment(id, workspaceId) ,
+    FOREIGN Key (equipId, workspaceId) References Equipment(equipId, workspaceId) ,
     FOREIGN Key (clientId, workspaceId) References Client(id, workspace_id) On Delete Cascade 
 );
 
