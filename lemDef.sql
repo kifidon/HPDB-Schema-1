@@ -1,5 +1,4 @@
 
-
 Drop Table If Exists Role
 CREATE TABLE Role(
     id VARCHAR(50) Primary KEY, 
@@ -21,13 +20,13 @@ CREATE TABLE ClientRep(
 
 Drop Table If Exists LemSheet
 CREATE TABLE LemSheet(
-    id VARCHAR(50),
+    Lid VARCHAR(50),
     clientId VARCHAR(50),
     workspaceId Varchar(50),
-    PRIMARY KEY (id, workspaceId),
+    PRIMARY KEY (Lid, workspaceId),
     lem_sheet_date DATE,
     lemNumber Varchar(10),
-    discripation VARCHAR(50),
+    [description] Text,
     notes NVARCHAR(250),
     projectId VARCHAR(50),
     projectManagerId VARCHAR(50),
@@ -93,6 +92,7 @@ create TABLE LemEntry (
     FOREIGN KEY (workerId, workspaceId) REFERENCES LemWorker(empId, workspaceId) ,
     -- Add other LemEntry columns as needed
 );
+
 Drop Table if Exists WorkerRateSheet
 CREATE TABLE WorkerRateSheet(
     clientId VARCHAR(50),
