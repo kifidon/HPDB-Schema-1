@@ -591,7 +591,7 @@ Create or alter TRIGGER  trg_insert_BackGroundTaskDjango
 
 update BackgroundTaskDjango 
 set message = 'No Message Provided' where [message] is NULL
-----------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -855,3 +855,22 @@ set message = 'No Message Provided' where [message] is NULL
     UPDATE EmployeeUser SET start_date = '2024-05-21' WHERE name = 'Maynard Basilides';
 
 */
+
+
+select * from TimeOffRequests tr
+inner join EmployeeUser eu on eu.id = tr.eID
+where eu.name like '%eah R%'
+order by startDate Desc
+
+select * from BankedTimeOffPolicy b 
+inner join EmployeeUser eu on eu.id = b.id and eu.name like '%Andrea%'
+
+select eu.name, b.[All Time Banked Hours], b.[All Time Used Banked Hours], b.balance From BankedTimeOffPolicy b
+inner join EmployeeUser eu on eu.id = b.id where b.[All Time Banked Hours] != 0 and b.[All Time Used Banked Hours] != 0
+
+select * from ENtry en where en.rate = -1
+
+select DATEPART(MONTH, Cast( en.start_time as Date)), SUM(en.duration) From Entry en
+group by  DATEPART(MONTH, Cast( en.start_time as Date))
+
+Selecy
