@@ -873,4 +873,3 @@ select * from ENtry en where en.rate = -1
 select DATEPART(MONTH, Cast( en.start_time as Date)), SUM(en.duration) From Entry en
 group by  DATEPART(MONTH, Cast( en.start_time as Date))
 
-Selecy

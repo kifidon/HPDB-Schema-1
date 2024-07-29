@@ -47,7 +47,7 @@ add [role] VARCHAR(50)
 Alter Table EmployeeUser
 add [hasTruck] Bit Default 0
 Alter Table EmployeeUser 
-add [manager] Varchar()
+add [manager] Varchar(50)
 
 
 -- TimeSheet Table
