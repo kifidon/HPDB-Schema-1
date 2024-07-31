@@ -210,7 +210,6 @@ CREATE VIEW AttendanceApproved AS
             case when h.name is not Null then h.name
                 else 'N/A'
             end as Holiday
-            
         from 
             TimeOffRequests tr 
         inner  join 
@@ -223,32 +222,38 @@ CREATE VIEW AttendanceApproved AS
             Holidays h on h.[date] = d.[date]
         where 
            d.dayOfWeek not in (1,7) and tr.status = 'APPROVED' 
-    )
+    )     
     SELECT 
         
         COALESCE(th.name, tr.name) AS [name],
-        COALESCE(th.email, tr.email) AS email,
+        Case 
+            when eu.hourly = 1 then 'Hourly' Else 'Salary'
+        End as [Type],
         COALESCE(th.[Date], tr.[Date]) AS [date],
-        case 
-            when d.dayOfWeek = 1 then 'Sunday'
-            when d.dayOfWeek = 2 then 'Monday'
-            when d.dayOfWeek = 3 then 'Tuesday'
-            when d.dayOfWeek = 4 then 'Wednesday'
-            when d.dayOfWeek = 5 then 'Thursday'
-            when d.dayOfWeek = 6 then 'Friday'
-            when d.dayOfWeek = 7 then 'Saturday'
-        end as DayOfWeek,
         CASE    
-            WHEN COALESCE(th.TotalHours, 0) <= 8 THEN COALESCE(th.TotalHours, 0)
-            ELSE 8
+            WHEN COALESCE(th.TotalHours, 0) <= 8 
+                and DATEPART(WEEKDAY, th.[Date]) between 2 and 6 
+                THEN COALESCE(th.TotalHours, 0)
+            when COALESCE(th.TotalHours, 0) > 8 
+                and DATEPART(WEEKDAY, th.[Date]) between 2 and 6 
+                THEN 8
+            when  th.[Date] = b.accuredOn and  DATEPART(WEEKDAY, th.[Date])  not between 2 and 6 
+                THEN 0
+            else COALESCE(th.totalHours, 0)
         END AS RegularHrs,
+        case when b.accuredOn is not Null then b.BankedHours else 0
+        end as Accrued,
+        
         CASE 
-            WHEN COALESCE(th.TotalHours, 0) > 8 THEN th.TotalHours - 8
+            WHEN COALESCE(th.TotalHours, 0) > 8 
+                and b.accuredOn is Null then  th.TotalHours - 8
             ELSE 0
         END AS Overtime,
         case 
             when th.TotalHours is null then 0
-            else th.TotalHours
+            when th.[Date] = tr.[date] and tr.policy_name like '%Banked%' then th.TotalHours + tr.TimeOff - Coalesce(b.BankedHours,0) 
+            when th.[Date] = tr.[date] and tr.policy_name not like '%Banked%' and eu.id = th.id and eu.hourly = 0 then th.TotalHours + tr.TimeOff - Coalesce(b.BankedHours,0) 
+            else th.TotalHours - Coalesce(b.BankedHours,0) 
         end as TotalHours,
         CASE 
             WHEN tr.TimeOff  is null THEN 0
@@ -269,11 +274,9 @@ CREATE VIEW AttendanceApproved AS
             AND th.[Date] = tr.[Date]
     left join 
         Calendar d on d.[date] IN (th.[Date], tr.date)
-    inner join GroupMembership gm on gm.user_id  = Coalesce(th.id, tr.id )
-    inner join UserGroups ug on ug.id = gm.group_id
-    where ug.id = '662692095d98964711869706'
-        
-
+    Inner join EmployeeUser eu on eu.id = th.id or eu.id = tr.id
+    left Join BankedHRS b on b.empID = eu.id and b.accuredOn = d.[date]
+    
 
 go
 drop view if exists BankedHRS
@@ -593,7 +596,7 @@ update BackgroundTaskDjango
 set message = 'No Message Provided' where [message] is NULL
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
+SELECT * from BankedHRS
 
 /*
     select * from EmployeeUser where name like 'Molar %'
@@ -872,4 +875,26 @@ select * from ENtry en where en.rate = -1
 
 select DATEPART(MONTH, Cast( en.start_time as Date)), SUM(en.duration) From Entry en
 group by  DATEPART(MONTH, Cast( en.start_time as Date))
+
+select * from BankedHRS b where b.empName like 'Timmy%'
+
+select * from BankedHRS b where b.empName
+
+Select eu.name, en.id, en.start_time From Entry en 
+Inner join timesheet ts on ts.id = en.time_sheet_id
+inner join EmployeeUser eu on eu.id = ts.emp_id
+Inner join TagsFor tg on en.id = tg.entryID
+where   ts.status = 'APPROVED' and eu.name like '%Koot%'
+group by eu.name
+
+Select Sum(en.duration) From Entry en 
+Inner join timesheet ts on ts.id = en.time_sheet_id
+inner join EmployeeUser eu on eu.id = ts.emp_id
+Inner join TagsFor tg on en.id = tg.entryID
+where   ts.status = 'APPROVED'
+
+select * from BankedHRS where empName like 'Andrea K%'
+
+delete From TimeSheet where status != 'APPROVED'
+
 
