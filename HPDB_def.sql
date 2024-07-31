@@ -48,6 +48,8 @@ Alter Table EmployeeUser
 add [hasTruck] Bit Default 0
 Alter Table EmployeeUser 
 add [manager] Varchar(50)
+Alter Table EmployeeUser
+add [hourly] Bit DEFAULT 0 
 
 
 -- TimeSheet Table
@@ -123,7 +125,8 @@ Create Table TagsFor(
     foreign key ([entryID], workspace_id) REFERENCES Entry(id, workspace_id)
     on delete cascade
     )
-
+alter table TagsFor
+add recordId VARCHAR(50)
 
 /*
     -- Rates for payroll 
