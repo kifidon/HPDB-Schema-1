@@ -1,7 +1,7 @@
 --TimeTracker_def
 
 -- Workspace Table
-drop table Workspace
+-- drop table Workspace
 go
 CREATE TABLE Workspace (
     id VARCHAR(50) PRIMARY KEY,
@@ -12,7 +12,7 @@ CREATE TABLE Workspace (
 
 select * from Client
 -- Client Table
-drop table Client
+-- drop table Client
 GO
 create TABLE Client (
     id VARCHAR(50),
@@ -28,7 +28,7 @@ ALTER TABLE Client
 ADD longName VARCHAR(255); 
 
 -- User Table
-drop table EmployeeUser
+-- drop table EmployeeUser
 go
 CREATE TABLE EmployeeUser (
     id VARCHAR(50) PRIMARY KEY,
@@ -46,10 +46,14 @@ Alter Table EmployeeUser
 add [role] VARCHAR(50)
 Alter Table EmployeeUser
 add [hasTruck] Bit Default 0
+Alter Table EmployeeUser 
+add [manager] Varchar(50)
+Alter Table EmployeeUser
+add [hourly] Bit DEFAULT 0 
 
 
 -- TimeSheet Table
-drop table TimeSheet 
+-- drop table TimeSheet 
 go 
 CREATE TABLE TimeSheet (
     id VARCHAR(50) ,
@@ -71,7 +75,7 @@ CREATE TABLE TimeSheet (
 );
 
 -- Project Table
-drop table Project 
+-- drop table Project 
 go 
 CREATE TABLE Project (
     id VARCHAR(50),
@@ -89,7 +93,7 @@ CREATE TABLE Project (
 select * from Entry
 
 -- Entry Table
-drop table Entry 
+-- drop table Entry 
 go 
 CREATE TABLE Entry (
     id VARCHAR(50),
@@ -110,18 +114,19 @@ CREATE TABLE Entry (
 );
 
 --Tags table 
-drop table TagsFor 
+-- drop table TagsFor 
 go 
 Create Table TagsFor(
     id Varchar(50), 
     [entryID] Varchar(50),
-    timeID varchar(50),
     workspace_id varchar(50)
     primary key (id, entryID, workspace_id),
     [name] Varchar(50),
-    foreign key ([entryID],timeID, workspace_id) REFERENCES Entry(id, time_sheet_id, workspace_id)
+    foreign key ([entryID], workspace_id) REFERENCES Entry(id, workspace_id)
     on delete cascade
     )
+alter table TagsFor
+add recordId VARCHAR(50)
 
 /*
     -- Rates for payroll 
@@ -144,7 +149,7 @@ Create Table TagsFor(
         foreign key (pid) references TimeOffPolicies(id) on delete cascade
     )
 */
-drop table TimeOffPolicies
+-- drop table TimeOffPolicies
 go
 CREATE TABLE TimeOffPolicies(
     id VARCHAR(50) , -- TIME OFF POLICY ID 
@@ -159,7 +164,7 @@ CREATE TABLE TimeOffPolicies(
     ON DELETE CASCADE 
 )
 
-drop table TimeOffRequests
+-- drop table TimeOffRequests
 go 
 CREATE TABLE TimeOffRequests(
     id VARCHAR(50) UNIQUE,
@@ -192,7 +197,7 @@ CREATE TABLE TimeOffRequests(
     Select * FROM Project where id ='65e79fd044189d689d3eaeff'
     )
 */
-drop table Calendar
+-- drop table Calendar
 go 
 create table Calendar ( 
     [date] Date primary key ,
@@ -200,7 +205,7 @@ create table Calendar (
     [month] INT, 
     [year] INT
 )
-drop table Holidays
+-- drop table Holidays
 go 
 create table Holidays(
     holidayID varchar(50),
@@ -212,7 +217,7 @@ create table Holidays(
     foreign key ([date]) references Calendar([date])
 )
 
-drop table UserGroups
+-- drop table UserGroups
 go
 CREATE TABLE UserGroups(
     id varchar(50) ,
@@ -226,7 +231,7 @@ Alter Table UserGroups
     Alter Column name Varchar(250)
 
 
-drop table GroupMembership
+-- drop table GroupMembership
 go
 CREATE TABLE GroupMembership(
     user_id varchar(50), 
@@ -238,7 +243,7 @@ CREATE TABLE GroupMembership(
 )
 
 --ExpenseCategory Table
-drop table ExpenseCategory
+-- drop table ExpenseCategory
 go
 CREATE TABLE ExpenseCategory (
     id VARCHAR(50),
@@ -256,7 +261,7 @@ CREATE TABLE ExpenseCategory (
 select * from ExpenseCategory
 
 --Expense Table
-drop table Expense
+-- drop table Expense
 CREATE TABLE Expense (
     id VARCHAR(64),
     status Varchar(50) default 'PENDING',
@@ -276,7 +281,7 @@ CREATE TABLE Expense (
 );
 
 Go 
-Drop Table If Exists  FilesForExpense
+-- drop table If Exists  FilesForExpense
 go 
 Create TABLE FilesForExpense(
     expenseId Varchar(64) Primary Key ,
@@ -287,7 +292,7 @@ Create TABLE FilesForExpense(
 Select * From FilesForExpense
 
 go
-drop table BackGroundTaskDjango
+-- drop table BackGroundTaskDjango
 create table BackGroundTaskDjango(
     status_code int,
     message NVARCHAR(MAX),
