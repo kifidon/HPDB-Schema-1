@@ -44,3 +44,65 @@ VALUES
     ('clientId', Dixon),
     ('unitRate', 34.5),
     ('dayRate', 21);
+
+
+select eu.name , '' as Salary from EmployeeUser eu where eu.status = 'ACTIVE' 
+order by eu.name 
+
+Update EmployeeUser
+set status = 'DEACTIVE'
+
+select * from EmployeeUser where name like 'Cody C%'
+
+Select * from EmployeeUser where manager = null and status = 'ACTIVE'
+
+Update Entry 
+set rate = 11388 where id in (
+
+    select en.id from Entry en 
+    inner join TimeSheet ts on ts.id = en.time_sheet_id
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    inner join Project p on p.id = en.project_id
+    where eu.name like 'Tony%'
+    and p.name = 'YTC-001 - YTC Centre Renovation'
+)
+
+
+Update EmployeeUser
+set manager=  'Matthew Dixon'
+where name like 'Akbar%'
+
+select datepart(month, en.start_time), SUM(en.duration * en.rate/100) as [Billable Amount] from Entry en
+    inner join TimeSheet ts on ts.id = en.time_sheet_id
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    inner join Project p on p.id = en.project_id
+    where ts.status = 'APPROVED' and DATEPART(year, Cast(en.start_time as Date )) = DatePart(YEAR, GETDATE())
+    and p.code ! = 'YTC-001'
+    group by datepart(month, en.start_time)
+    order by datepart(month, en.start_time)
+
+
+select p.code, SUM(en.duration * en.rate/100) as [Billable Amount] from Entry en
+    inner join TimeSheet ts on ts.id = en.time_sheet_id
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    inner join Project p on p.id = en.project_id
+    where ts.status = 'APPROVED'
+    and datepart(month, en.start_time) = 1
+    group by p.code
+    order by p.code
+
+
+select * from Entry en where en.start_time < '2024-02-28'
+
+
+Select * from Project
+
+
+
+
+
+
+
+
+
+
