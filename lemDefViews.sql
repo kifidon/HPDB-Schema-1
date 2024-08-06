@@ -1,20 +1,4 @@
-/*
-Some Notes on the views
-1. View names should be relavant and easily notifiable. Lemv1, Lemv2, Lemv3 give no detail about 
-    whats being stored in each view.
-2.  You've joined the tables using a cross join which means that without proper filtering in a "where"
-    clause, the rows in the views have no meaning, as Data is being shared and douplicated across multiple
-    records 
-3.  The views should be designed using the keys of relavent columns in a way that makes 
-    quering them in the future efficient and simple.  The columns in the views 
-    should be the relavant attributes of the underlying tables such that, someone without 
-    coding experience can read the table without having to understand the database schema.
-    There are no "where" clauses or join clauses which also means finding relavent data
-    is going to be tricky without knowing exactly where it is stored
-    in the database.
 
-I've included a view for the WorkerRateSheet to help you get started and give more direction.
-*/
 
 GO -- starts a new batch 
 Drop View if Exists WorkerRateSheetView
@@ -36,21 +20,61 @@ Go
 drop view if Exists EquipmentRateSheetView
 go 
 create VIEW EquipmentRateSheetView as (
-    select 1 as '1' from EqpRateSheet
+    Select 
+        c.id as [ClientId], -- relavant key for easy retrieval of all rates for a given client
+        c.longName as [ClientName], -- formated column names 
+        eq.name as [Equipment],
+        er.dayRate as [DayRate],
+        er.unitRate as [unitRate]
+    from EqpRateSheet er 
+    inner join Client c on c.id = er.clientId -- joined only on matching clients
+    inner join Equipment eq on eq.id = er.equipId -- further joined on matching names
 )
 
 Go 
 drop view if Exists lemEquipEntrys
 go 
 create VIEW lemEquipEntries as (
-    select 1 as '1' from EqpRateSheet
+    Select 
+        ls.lem_sheet_date,
+        eq.name,
+        ee.qty,
+        case 
+            when ee.isUnitRate = 1 then ers.unitRate
+            else ers.dayRate
+        end as [Rate],
+        case 
+            when  ee.isUnitRate = 1 then ers.unitRate * ee.qty
+            else ers.dayRate * ee.qty
+        end as [Cost]
+    from EquipEntry ee
+    inner join LemSheet ls on ls.id = ee.lemId
+    Inner join Equipment eq on eq.id = ee.equipId
+    inner join EqpRateSheet ers on ers.clientId = ls.clientId and eq.id = ers.equipId
 )
 
 Go 
 drop view if Exists lemWorkerEntries
 go 
 create VIEW lemWorkerEntries as (
-    select 1 as '1' from EqpRateSheet
+    Select 
+        ls.lem_sheet_date,
+        eu.name as [emp], 
+        r.name as [role],
+        le.[work],
+        le.travel,
+        le.Calc,
+        Cast(le.[work] *  wr.workRate as Decimal (10,2)) as WorkTotal,
+        cast (le.[travel] *  wr.travelRate as decimal(10,2)) as [TravelTotal],
+        Cast (le.[Calc] * wr.calcRate as decimal(10,2)) as [CalcRate],
+        le.Meals,
+        le.Hotel
+    from LemEntry le 
+    inner join LemSheet ls on ls.id = le.lemId
+    inner join LemWorker lw on lw.empId = le.workerId
+    inner join EmployeeUser eu on eu.id = lw.empId
+    inner join Role r on r.id = lw.roleId
+    Left join WorkerRateSheet wr on wr.clientId = ls.clientId and wr.roleId = lw.roleId
 )
 
 Go 

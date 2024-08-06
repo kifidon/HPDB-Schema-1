@@ -97,12 +97,24 @@ select * from Entry en where en.start_time < '2024-02-28'
 
 Select * from Project
 
+select en.id, en.start_time, en.duration, en.[description] from Entry en 
+    inner join TimeSheet ts on ts.id = en.time_sheet_id
+    inner join EmployeeUser eu on eu.id = ts.emp_id
+    where eu.name like 'Julia C%' and ts.status = 'APPROVED' and ts.start_time = '2024-07-28'
+
+order by ts.start_time
+
+select * from Entry en where DatePart(day, en.start_time) != DATEPART(day, en.end_time)
 
 
+Update Entry 
+set start_time = DATEADD(hour, -6, start_time),
+    end_time = DATEADD(hour, -6, end_time)
+    where id in (
+       select en.id from Entry en 
+       where DatePart(day, en.start_time) != DATEPART(day, en.end_time)
+    --    and en.duration >= 8
+ 
+    )
 
-
-
-
-
-
-
+Select * from Entry
