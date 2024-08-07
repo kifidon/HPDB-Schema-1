@@ -117,4 +117,42 @@ set start_time = DATEADD(hour, -6, start_time),
  
     )
 
+
+Select DATEDIFF(day, ts.start_time, ts.end_time)  From TimeSheet ts where ts.id = '66ad5af7433b4b794e0c3c00'
+
 Select * from Entry
+
+Update TimeSheet 
+set end_time = DATEADD(day, -1, end_time)
+where id in (
+    select id 
+    from TimeSheet ts where DATEDIFF(day, ts.start_time, ts.end_time) = 7 and ts.[status] = 'APPROVED' and DATEPART(WEEKDAY, ts.end_time) = 1
+
+
+)
+
+select * from TimeSheet ts where DATEDIFF(day, ts.start_time, ts.end_time) = 7 and ts.[status] = 'APPROVED' and DATEPART(WEEKDAY, ts.end_time) = 1
+
+
+select * from TimeSheet ts where DATEDIFF(day, ts.start_time, ts.end_time) = 6 and ts.status = 'APPROVED' and  DATEPART(WEEKDAY, ts.start_time) = 1
+
+
+
+
+select * from LemEntry
+select * from LemWorker
+
+select * from lemEquipEntries
+Select * from EquipEntry
+
+
+Select ts.start_time, sum(en.duration) from ENtry en 
+inner join TimeSheet ts on ts.id = en.time_sheet_id
+inner join EmployeeUser eu on eu.id = ts.emp_id
+where eu.name like 'Jaurie%' 
+group by ts.start_time
+
+and Cast(en.start_time as Date) = '2024-07-26' and ts.[status] = 'APPROVED'
+
+delete Entry where id ='66a7691965149e021ec86013'
+

@@ -23,7 +23,7 @@ create VIEW EquipmentRateSheetView as (
     Select 
         c.id as [ClientId], -- relavant key for easy retrieval of all rates for a given client
         c.longName as [ClientName], -- formated column names 
-        eq.name as [Equipment],
+        eq.name as [EquipmentName],
         er.dayRate as [DayRate],
         er.unitRate as [unitRate]
     from EqpRateSheet er 
@@ -32,10 +32,11 @@ create VIEW EquipmentRateSheetView as (
 )
 
 Go 
-drop view if Exists lemEquipEntrys
+drop view if Exists lemEquipEntries
 go 
 create VIEW lemEquipEntries as (
     Select 
+        ls.id,
         ls.lem_sheet_date,
         eq.name,
         ee.qty,
@@ -50,7 +51,7 @@ create VIEW lemEquipEntries as (
     from EquipEntry ee
     inner join LemSheet ls on ls.id = ee.lemId
     Inner join Equipment eq on eq.id = ee.equipId
-    inner join EqpRateSheet ers on ers.clientId = ls.clientId and eq.id = ers.equipId
+    LEFT join EqpRateSheet ers on ers.clientId = ls.clientId and eq.id = ers.equipId
 )
 
 Go 
@@ -58,6 +59,7 @@ drop view if Exists lemWorkerEntries
 go 
 create VIEW lemWorkerEntries as (
     Select 
+        ls.id,
         ls.lem_sheet_date,
         eu.name as [emp], 
         r.name as [role],
@@ -66,12 +68,15 @@ create VIEW lemWorkerEntries as (
         le.Calc,
         Cast(le.[work] *  wr.workRate as Decimal (10,2)) as WorkTotal,
         cast (le.[travel] *  wr.travelRate as decimal(10,2)) as [TravelTotal],
-        Cast (le.[Calc] * wr.calcRate as decimal(10,2)) as [CalcRate],
+        Cast (le.[Calc] * wr.calcRate as decimal(10,2)) as [CalcTotal],
         le.Meals,
-        le.Hotel
+        le.Hotel,
+        wr.workRate,
+        wr.travelRate,
+        wr.calcRate as [Calc Rate]
     from LemEntry le 
     inner join LemSheet ls on ls.id = le.lemId
-    inner join LemWorker lw on lw.empId = le.workerId
+    inner join LemWorker lw on lw._id = le.workerId
     inner join EmployeeUser eu on eu.id = lw.empId
     inner join Role r on r.id = lw.roleId
     Left join WorkerRateSheet wr on wr.clientId = ls.clientId and wr.roleId = lw.roleId
@@ -83,6 +88,28 @@ go
 create VIEW DataForLemOutput as ( -- combined relavant data
     select 1 as '1' from EqpRateSheet
 )
+
+GO
+-- For generating lem spreadsheet
+Declare @lemId Nvarchar(MAX) = '955b92bd4b19faa330125bb5704336efe442f199975ec'
+
+select Concat(lw.role, ' - Work'), Sum(lw.[work]), lw.workRate, SUM(lw.work * lw.workRate)  From lemWorkerEntries lw
+where lw.id = @lemId
+group by lw.role, lw.workRate
+having Sum(lw.work) != 0
+UNION
+select Concat(lw.role, ' - Travel'), lw.travelRate, SUM(lw.travel * lw.travelRate)  From lemWorkerEntries lw
+where lw.id = @lemId
+group by lw.role, lw.travelRate
+having Sum(lw.travel) != 0
+Union
+select Concat(lw.role, ' - Calc'), lw.[Calc Rate], SUM(lw.calc * lw.[Calc Rate])  From lemWorkerEntries lw
+where lw.id = @lemId
+group by lw.role, lw.[Calc Rate]
+having Sum(lw.calc) != 0
+
+
+
 
 /*
 
