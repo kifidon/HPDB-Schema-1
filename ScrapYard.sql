@@ -144,7 +144,7 @@ select * from LemWorker
 
 select * from lemEquipEntries
 Select * from EquipEntry
-
+select Count(id) From Project
 
 Select ts.start_time, sum(en.duration) from ENtry en 
 inner join TimeSheet ts on ts.id = en.time_sheet_id
@@ -156,3 +156,59 @@ and Cast(en.start_time as Date) = '2024-07-26' and ts.[status] = 'APPROVED'
 
 delete Entry where id ='66a7691965149e021ec86013'
 
+select * from LemSheet where description is not NULL
+
+delete from Role
+
+Select * from Role
+
+
+select * from Client 
+insert into Role(id, name) Values ('21232', 'Trucker')
+insert into Equipment(id, name) Values ('919394', 'Truck')
+
+select * from LemSheet
+
+select * from Workspace
+ 
+Select * from Equipment
+
+Select * from EquipEntry
+
+Drop table django_celery_beat_crontabschedule
+
+
+SELECT DISTINCT COLUMN_NAME
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'EquipEntry';
+
+
+INSERT INTO EquipEntry (_id, lemId, workspaceId, equipId, isUnitRate, qty)
+VALUES (
+    '74fd2c556808b001114bab4886163be403e07d8414c36',  -- _id
+    '461fb94fbedf7499259ba46606260df60c6a00323e62c',  -- lemId
+    '65c249bfedeea53ae19d7dad',                      -- workspaceId
+    '919394',                                        -- equipId
+    1,                                               -- isUnitRate (True in SQL is 1)
+    9                                                -- qty
+);
+
+delete EquipEntry
+
+Select * from EquipEntry
+
+Delete Role
+
+Select * from EntryDetails
+
+select * from Workspace
+select * from Role
+Delete Equipment where name like 'Test%'
+Delete Role where name like 'Test%'
+
+
+select * from WorkerRateSheet
+select * from LemSheet ls 
+inner join Project p on p.id = ls.[projectId]
+
+SELECT * FROM LemSheet
