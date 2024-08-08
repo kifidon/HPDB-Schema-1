@@ -181,7 +181,7 @@ BEGIN
     UPDATE LemSheet
     SET lemNumber = 'LEM-' + Right(Replicate('0', 4) + CAST(CAST(SUBSTRING(lemNumber, 5, 4) AS INT) - 1 AS VARCHAR(10)), 4)
     WHERE clientId = @ClientId AND projectId = @ProjectId
-    AND CAST(SUBSTRING(lemNumber, 5, 4) AS INT) > Cast(Substring(@deletedLemNum, 5, 4) as int);
+    AND CAST(SUBSTRING(lemNumber, 5, 4) AS INT) > Substring(@deletedLemNum, 5, 4);
 END;
 go 
 
@@ -189,6 +189,8 @@ go
 Select Right(Replicate('0', 4) + CAST(CAST(SUBSTRING(lemNumber, 5, 4) AS INT) - 1 AS VARCHAR(10)), 4)
  from LemSheet where id = '2eb51c801eea1560c4b603d7aa447b2dc0e5fbf3bdcbb'
 
+
+select * from LemSheet
 
 
 /*

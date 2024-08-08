@@ -212,3 +212,5 @@ select * from LemSheet ls
 inner join Project p on p.id = ls.[projectId]
 
 SELECT * FROM LemSheet
+
+Update LemSheet set lemNumber = 'LEM-0002' where id = '955b92bd4b19faa330125bb5704336efe442f199975ec'
